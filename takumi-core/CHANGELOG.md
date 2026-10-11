@@ -1,3 +1,68 @@
+## takumi-core@0.26.0
+
+### Free the slack in a scene's paint lists
+
+A built scene gives back the room its paint lists grew past their items. Pages with many flex or grid items, like large tables, render in less memory.
+
+### Repeat a table's footer on every page it breaks across
+
+A `tfoot` no taller than a quarter of the page now paints again below the last row of every page the table's body breaks across, as Chrome prints it, and each such page saves room for it. The repeats are artifacts, so the structure tree keeps one `TFoot`.
+
+### Lay text out once, during layout
+
+Long documents render with less memory and time. Layout keeps each text box's lines as compact fragment items and drops the shaped text, so painting, page breaking and PDF output no longer shape or break the text again. A 1,500-page document of paragraphs renders in about a sixth less memory and a tenth less time.
+
+`FragmentItems`, `OwnContent::fragment_items` and `RenderContext::release_shaped_text` are new.
+
+### Free the layout tree's memory once layout finishes
+
+The laid-out positions no longer keep the whole layout tree's allocation alive for the rest of the render. An 11,000-row table renders in about 110MB less memory.
+
+### Key resolved glyphs with a faster hasher
+
+`PositionedInlineRun::resolved_glyphs` is now a `ResolvedGlyphs`, a `FxHashMap` keyed by glyph id, instead of a `HashMap` with the default hasher. Code that only calls `get` on it keeps working.
+
+### Share the layout style of anonymous boxes
+
+Anonymous block boxes share one layout style instead of each holding a copy, so text-heavy tables render in less memory.
+
+### Break pages between line boxes, as Chrome does
+
+A page break now falls between two line boxes instead of between the glyph bands of a font whose ascent and descent outgrow its line height. A paragraph taller than a page used to leave the first page blank when a margin preceded it, and short paragraphs never split across pages. Both now paginate like Chrome's print output.
+
+### Lay out a node's inline content for painting in one call
+
+`OwnContent::lay_out_inline` lays a node's inline content out in its content box and returns a `PaintedInline`: its spans, its text and its resolved runs. Painting the node again in the same content box reuses the layout, unless `text-overflow: ellipsis` cut the content short.
+
+### Share a box's computed style by reference count
+
+`RenderContext::style` is now an `Rc<ComputedStyle>` instead of a `Box<ComputedStyle>`. Reading it works as before. `RenderContextBuilder::style` still accepts a `Box<ComputedStyle>`.
+
+### Keep a computed style in Blink's field groups
+
+Large documents render in less memory. Boxes share the parts of their computed style they leave unchanged, as Chrome's do. An 11,000-row table takes about a quarter less memory.
+
+`ComputedStyle` fields now sit in groups named after Blink's field groups, each behind an `Rc`:
+
+```rust
+let width = style.box_data.width;
+let color = style.inherited_data.color;
+
+Rc::make_mut(&mut style.box_data).width = Size::default();
+```
+
+### Repeat a table header or footer only when it avoids breaks, as Chrome does
+
+A header or footer group repeats on every page only with `break-inside: avoid`, which the `thead` and `tfoot` presets now set like Chrome's print stylesheet. A tree that sets `display: table-header-group` without it no longer repeats the group.
+
+### Lay out tables with more than 10,000 rows
+
+Rows past the 10,000th used to pile up on top of each other, without an error. A taller table now lays out every row, and a tagged PDF keeps every row in its structure tree.
+
+### Refuse node trees nested deeper than 512 levels
+
+A node tree passed in as data now fails with `nodes nest deeper than 512 levels` past Blink's parser depth, instead of overflowing the stack and aborting the process. `takumi_html::DEFAULT_MAX_DEPTH` is now `takumi_core::layout::node::MAXIMUM_DOM_TREE_DEPTH`; `takumi::DEFAULT_MAX_DEPTH` keeps its name.
+
 ## takumi-core@0.25.0
 
 ### Report a capped WebP animation as unfinished

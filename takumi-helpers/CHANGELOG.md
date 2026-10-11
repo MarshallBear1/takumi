@@ -1,3 +1,9 @@
+## @takumi-rs/helpers@2.15.0
+
+### Repeat a table header or footer only when it avoids breaks, as Chrome does
+
+A header or footer group repeats on every page only with `break-inside: avoid`, which the `thead` and `tfoot` presets now set like Chrome's print stylesheet. A tree that sets `display: table-header-group` without it no longer repeats the group.
+
 ## @takumi-rs/helpers@2.13.6
 
 ### Retry transient font and image requests
